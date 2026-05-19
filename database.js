@@ -1,38 +1,29 @@
-const sqlite3 = require("sqlite3").verbose();
+const Database = require("better-sqlite3");
 
-const db = new sqlite3.Database("./database.sqlite");
+// fichier DB
+const db = new Database("database.sqlite");
 
-db.serialize(() => {
+// création tables
+db.exec(`
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT UNIQUE,
+  password TEXT,
+  role TEXT
+);
 
-  // USERS
-  db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE,
-      password TEXT,
-      role TEXT
-    )
-  `);
+CREATE TABLE IF NOT EXISTS apartments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT,
+  owner_id INTEGER
+);
 
-  // APARTMENTS
-  db.run(`
-    CREATE TABLE IF NOT EXISTS apartments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      code TEXT,
-      owner_id INTEGER
-    )
-  `);
-
-  // DEBTS
-  db.run(`
-    CREATE TABLE IF NOT EXISTS debts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      apartment_id INTEGER,
-      amount REAL,
-      status TEXT
-    )
-  `);
-
-});
+CREATE TABLE IF NOT EXISTS debts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  apartment_id INTEGER,
+  amount REAL,
+  status TEXT
+);
+`);
 
 module.exports = db;

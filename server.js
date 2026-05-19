@@ -1,43 +1,81 @@
 const express = require("express");
 const path = require("path");
-const db = require("./database"); // ✅ IMPORTANT
+const db = require("./database");
 
 const app = express();
 
 app.use(express.static("public"));
 app.use(express.json());
 
-// page login
+/* -------------------------
+   PAGE LOGIN
+--------------------------*/
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public/login.html"));
 });
 
-// dashboard page
+/* -------------------------
+   DASHBOARD PAGE
+--------------------------*/
 app.get("/dashboard", (req, res) => {
   res.sendFile(path.join(__dirname, "public/dashboard.html"));
 });
 
-// API dashboard
-app.get("/api/dashboard", (req, res) => {
-  const query = `
-    SELECT 
-      apartments.code AS apartment,
-      debts.amount,
-      debts.status
-    FROM apartments
-    LEFT JOIN debts ON apartments.id = debts.apartment_id
-  `;
+/* -------------------------
+   LOGIN API
+--------------------------*/
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
 
-  db.all(query, [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
+  try {
+    const user = db
+      .prepare("SELECT * FROM users WHERE email = ?")
+      .get(email);
+
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
     }
-    res.json(rows);
-  });
+
+    // ⚠️ version simple (sans JWT pour l’instant)
+    if (password !== "1234" && password !== user.password) {
+      return res.json({ success: false, message: "Wrong password" });
+    }
+
+    res.json({ success: true, role: user.role });
+
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
+/* -------------------------
+   DASHBOARD API (DATA SYNDIC)
+--------------------------*/
+app.get("/api/dashboard", (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        apartments.code AS apartment,
+        debts.amount,
+        debts.status
+      FROM apartments
+      LEFT JOIN debts ON apartments.id = debts.apartment_id
+    `;
+
+    const rows = db.prepare(query).all();
+
+    res.json(rows);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* -------------------------
+   SERVER START
+--------------------------*/
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log("Server running");
+  console.log("Server running on port " + PORT);
 });

@@ -1,36 +1,25 @@
-const bcrypt = require("bcryptjs");
 const db = require("./database");
+const bcrypt = require("bcryptjs");
 
 const password = bcrypt.hashSync("1234", 10);
 
-db.run(
-  "INSERT INTO users (email, password, role) VALUES (?, ?, ?)",
-  ["test@syndic.com", password, "owner"],
-  function () {
+db.prepare(`
+  INSERT OR IGNORE INTO users (email, password, role)
+  VALUES (?, ?, ?)
+`).run("test@syndic.com", password, "owner");
 
-    const userId = this.lastID;
+const user = db.prepare(`SELECT * FROM users WHERE email = ?`).get("test@syndic.com");
 
-    db.run(
-      "INSERT INTO apartments (code, owner_id) VALUES (?, ?)",
-      ["A-101", userId],
-      function () {
+const apt = db.prepare(`
+  INSERT OR IGNORE INTO apartments (code, owner_id)
+  VALUES (?, ?)
+`).run("A-101", user.id);
 
-        const aptId = this.lastID;
+const apartment = db.prepare(`SELECT * FROM apartments WHERE code = ?`).get("A-101");
 
-        db.run(
-          "INSERT INTO debts (apartment_id, amount, status) VALUES (?, ?, ?)",
-          [aptId, 120, "unpaid"]
-        );
+db.prepare(`
+  INSERT OR IGNORE INTO debts (apartment_id, amount, status)
+  VALUES (?, ?, ?)
+`).run(apartment.id, 120, "unpaid");
 
-        db.run(
-          "INSERT INTO debts (apartment_id, amount, status) VALUES (?, ?, ?)",
-          [aptId, 0, "paid"]
-        );
-
-      }
-    );
-
-  }
-);
-
-console.log("Seed completed");
+console.log("Seed OK");
